@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ERP Core Suite — Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <style>
+    body { background: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
+    .sidebar {
+      width: 240px; min-height: 100vh;
+      background: #1e2a3a; color: #adb5bd;
+      position: fixed; top: 0; left: 0;
+      display: flex; flex-direction: column;
+    }
+    .sidebar .brand {
+      padding: 20px 18px; font-size: 1.1rem;
+      font-weight: 700; color: #fff;
+      border-bottom: 1px solid #2d3f52;
+    }
+    .sidebar .nav-link {
+      color: #adb5bd; padding: 10px 18px;
+      border-radius: 0; font-size: 0.9rem;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .sidebar .nav-link:hover, .sidebar .nav-link.active {
+      background: #2d3f52; color: #fff;
+    }
+    .sidebar .nav-section {
+      font-size: 0.7rem; text-transform: uppercase;
+      letter-spacing: 1px; padding: 14px 18px 4px;
+      color: #6c757d;
+    }
+    .main { margin-left: 240px; padding: 24px; }
+    .topbar {
+      background: #fff; border-radius: 10px;
+      padding: 12px 20px; margin-bottom: 22px;
+      display: flex; justify-content: space-between; align-items: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .stat-card {
+      background: #fff; border-radius: 12px;
+      padding: 20px 22px; box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .stat-card .icon {
+      width: 50px; height: 50px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+    }
+    .stat-card h3 { font-size: 1.6rem; font-weight: 700; margin: 0; }
+    .stat-card p  { font-size: 0.8rem; color: #6c757d; margin: 0; }
+    .card { border: none; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .badge-low  { background: #fff3cd; color: #856404; }
+    .badge-ok   { background: #d1e7dd; color: #0a3622; }
+    table thead th { font-size: 0.78rem; text-transform: uppercase; color: #6c757d; font-weight: 600; }
+    table tbody td { font-size: 0.88rem; vertical-align: middle; }
+    #loginOverlay {
+      position: fixed; inset: 0; background: #1e2a3a;
+      display: flex; align-items: center; justify-content: center; z-index: 9999;
+    }
+    .login-box {
+      background: #fff; border-radius: 16px;
+      padding: 40px 36px; width: 360px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.2);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Login Overlay -->
+<div id="loginOverlay">
+  <div class="login-box">
+    <div class="text-center mb-4">
+      <i class="bi bi-building fs-1 text-primary"></i>
+      <h5 class="mt-2 fw-bold">ERP Core Suite</h5>
+      <small class="text-muted">Sign in to continue</small>
+    </div>
+    <div id="loginError" class="alert alert-danger d-none py-2"></div>
+    <div class="mb-3">
+      <input id="loginUser" type="text" class="form-control" placeholder="Username" value="admin" />
+    </div>
+    <div class="mb-4">
+      <input id="loginPass" type="password" class="form-control" placeholder="Password" value="Admin@123" />
+    </div>
+    <button onclick="doLogin()" class="btn btn-primary w-100 fw-semibold">Sign In</button>
+    <div class="text-center mt-3">
+      <small class="text-muted">admin / Admin@123 &nbsp;|&nbsp; hruser / Hr@123</small>
+    </div>
+  </div>
+</div>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="brand"><i class="bi bi-building me-2"></i>ERP Core Suite</div>
+  <div class="nav-section">Main</div>
+  <a class="nav-link active" onclick="showPage('dashboard')"><i class="bi bi-speedometer2"></i> Dashboard</a>
+  <div class="nav-section">Inventory</div>
+  <a class="nav-link" onclick="showPage('products')"><i class="bi bi-box-seam"></i> Products</a>
+  <a class="nav-link" onclick="showPage('stock')"><i class="bi bi-arrow-left-right"></i> Stock Transactions</a>
+  <div class="nav-section">Payroll</div>
+  <a class="nav-link" onclick="showPage('employees')"><i class="bi bi-people"></i> Employees</a>
+  <a class="nav-link" onclick="showPage('payroll')"><i class="bi bi-cash-coin"></i> Payroll</a>
+  <div class="nav-section">Accounting</div>
+  <a class="nav-link" onclick="showPage('accounts')"><i class="bi bi-journal-text"></i> Chart of Accounts</a>
+  <a class="nav-link" onclick="showPage('journal')"><i class="bi bi-file-earmark-text"></i> Journal Entry</a>
+  <div class="mt-auto p-3 border-top border-secondary">
+    <small id="userBadge" class="text-muted"></small><br/>
+    <a href="#" onclick="logout()" class="text-danger small"><i class="bi bi-box-arrow-left"></i> Logout</a>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="main">
+  <div class="topbar">
+    <span id="pageTitle" class="fw-semibold fs-5">Dashboard</span>
+    <span id="dateDisplay" class="text-muted small"></span>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard">
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="stat-card">
+          <div>
+            <p>Total Products</p>
+            <h3 id="stat-products">—</h3>
+          </div>
+          <div class="icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-box-seam"></i></div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card">
+          <div>
+            <p>Low Stock Alerts</p>
+            <h3 id="stat-lowstock" class="text-danger">—</h3>
+          </div>
+          <div class="icon bg-danger bg-opacity-10 text-danger"><i class="bi bi-exclamation-triangle"></i></div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card">
+          <div>
+            <p>Active Employees</p>
+            <h3 id="stat-employees">—</h3>
+          </div>
+          <div class="icon bg-success bg-opacity-10 text-success"><i class="bi bi-people"></i></div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card">
+          <div>
+            <p>Chart of Accounts</p>
+            <h3 id="stat-accounts">—</h3>
+          </div>
+          <div class="icon bg-warning bg-opacity-10 text-warning"><i class="bi bi-journal-text"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card p-3">
+      <h6 class="fw-semibold mb-3"><i class="bi bi-exclamation-triangle text-danger me-2"></i>Low Stock Products</h6>
+      <table class="table table-hover mb-0">
+        <thead><tr><th>Code</th><th>Product</th><th>Category</th><th>Stock Qty</th><th>Reorder Level</th><th>Status</th></tr></thead>
+        <tbody id="lowStockTable"><tr><td colspan="6" class="text-center text-muted py-3">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PRODUCTS -->
+  <div id="page-products" class="d-none">
+    <div class="card p-3">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-semibold mb-0"><i class="bi bi-box-seam me-2 text-primary"></i>Products</h6>
+        <button class="btn btn-sm btn-primary"><i class="bi bi-plus"></i> Add Product</button>
+      </div>
+      <table class="table table-hover mb-0">
+        <thead><tr><th>Code</th><th>Name</th><th>Category</th><th>Cost</th><th>Sale</th><th>Stock</th><th>Status</th></tr></thead>
+        <tbody id="productsTable"><tr><td colspan="7" class="text-center text-muted py-3">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- EMPLOYEES -->
+  <div id="page-employees" class="d-none">
+    <div class="card p-3">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-semibold mb-0"><i class="bi bi-people me-2 text-success"></i>Employees</h6>
+        <button class="btn btn-sm btn-success"><i class="bi bi-plus"></i> Add Employee</button>
+      </div>
+      <table class="table table-hover mb-0">
+        <thead><tr><th>Code</th><th>Name</th><th>Department</th><th>Designation</th><th>Basic</th><th>Housing</th><th>Transport</th><th>Gross</th></tr></thead>
+        <tbody id="employeesTable"><tr><td colspan="8" class="text-center text-muted py-3">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ACCOUNTS -->
+  <div id="page-accounts" class="d-none">
+    <div class="card p-3">
+      <h6 class="fw-semibold mb-3"><i class="bi bi-journal-text me-2 text-warning"></i>Chart of Accounts</h6>
+      <table class="table table-hover mb-0">
+        <thead><tr><th>Code</th><th>Account Name</th><th>Type</th></tr></thead>
+        <tbody id="accountsTable"><tr><td colspan="3" class="text-center text-muted py-3">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PLACEHOLDER PAGES -->
+  <div id="page-stock"   class="d-none"><div class="card p-4 text-center text-muted"><i class="bi bi-arrow-left-right fs-1"></i><p class="mt-2">Stock Transactions — Connect to API</p></div></div>
+  <div id="page-payroll" class="d-none"><div class="card p-4 text-center text-muted"><i class="bi bi-cash-coin fs-1"></i><p class="mt-2">Payroll — Connect to API</p></div></div>
+  <div id="page-journal" class="d-none"><div class="card p-4 text-center text-muted"><i class="bi bi-file-earmark-text fs-1"></i><p class="mt-2">Journal Entry — Connect to API</p></div></div>
+</div>
+
+<script>
+  const API = 'http://localhost:5000/api';
+  let token = '';
+
+  document.getElementById('dateDisplay').textContent =
+    new Date().toLocaleDateString('en-GB', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  async function doLogin() {
+    const u = document.getElementById('loginUser').value;
+    const p = document.getElementById('loginPass').value;
+    const err = document.getElementById('loginError');
+    try {
+      const res = await fetch(`${API}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: u, password: p })
+      });
+      const data = await res.json();
+      if (!data.success) { err.textContent = data.message; err.classList.remove('d-none'); return; }
+      token = data.token;
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('userBadge').textContent = `${u} (${data.role})`;
+      loadDashboard();
+    } catch {
+      // Demo mode — no real API running
+      token = 'demo';
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('userBadge').textContent = `${u} (Demo Mode)`;
+      loadDashboard();
+    }
+  }
+
+  function logout() {
+    token = '';
+    document.getElementById('loginOverlay').style.display = 'flex';
+  }
+
+  const pages = ['dashboard','products','stock','employees','payroll','accounts','journal'];
+  function showPage(name) {
+    pages.forEach(p => document.getElementById('page-' + p).classList.add('d-none'));
+    document.getElementById('page-' + name).classList.remove('d-none');
+    document.getElementById('pageTitle').textContent =
+      name.charAt(0).toUpperCase() + name.slice(1);
+    document.querySelectorAll('.sidebar .nav-link').forEach(l => l.classList.remove('active'));
+    if (name === 'products')   loadProducts();
+    if (name === 'employees')  loadEmployees();
+    if (name === 'accounts')   loadAccounts();
+  }
+
+  async function apiFetch(path) {
+    try {
+      const r = await fetch(API + path, { headers: { Authorization: `Bearer ${token}` } });
+      return await r.json();
+    } catch {
+      return null; // demo mode
+    }
+  }
+
+  function loadDashboard() {
+    // Demo data when no real API is connected
+    document.getElementById('stat-products').textContent  = '8';
+    document.getElementById('stat-lowstock').textContent  = '2';
+    document.getElementById('stat-employees').textContent = '5';
+    document.getElementById('stat-accounts').textContent  = '15';
+
+    const demoLowStock = [
+      { productCode:'PRD-002', productName:'Writing Desk',    category:'Furniture',  stockQty:3,  reorderLevel:5  },
+      { productCode:'PRD-008', productName:'Filing Cabinet',  category:'Furniture',  stockQty:2,  reorderLevel:3  }
+    ];
+    renderLowStock(demoLowStock);
+  }
+
+  function renderLowStock(items) {
+    const tb = document.getElementById('lowStockTable');
+    if (!items || !items.length) { tb.innerHTML = '<tr><td colspan="6" class="text-center text-muted">All stock levels OK</td></tr>'; return; }
+    tb.innerHTML = items.map(p => `
+      <tr>
+        <td><code>${p.productCode}</code></td>
+        <td>${p.productName}</td>
+        <td><span class="badge text-bg-secondary">${p.category}</span></td>
+        <td class="text-danger fw-semibold">${p.stockQty}</td>
+        <td>${p.reorderLevel}</td>
+        <td><span class="badge badge-low">Low Stock</span></td>
+      </tr>`).join('');
+  }
+
+  function loadProducts() {
+    const demo = [
+      { productCode:'PRD-001', productName:'Office Chair',      category:'Furniture',   costPrice:45,  salePrice:75,  stockQty:50 },
+      { productCode:'PRD-002', productName:'Writing Desk',      category:'Furniture',   costPrice:90,  salePrice:150, stockQty:3  },
+      { productCode:'PRD-003', productName:'A4 Paper Ream',     category:'Stationery',  costPrice:2.5, salePrice:4,   stockQty:500},
+      { productCode:'PRD-004', productName:'Ballpoint Pen Box', category:'Stationery',  costPrice:1.2, salePrice:2.5, stockQty:300},
+      { productCode:'PRD-005', productName:'Laptop Stand',      category:'Electronics', costPrice:12,  salePrice:22,  stockQty:40 },
+      { productCode:'PRD-006', productName:'USB Hub 4-Port',    category:'Electronics', costPrice:4.5, salePrice:9,   stockQty:100},
+      { productCode:'PRD-007', productName:'Whiteboard Marker', category:'Stationery',  costPrice:2,   salePrice:4.5, stockQty:150},
+      { productCode:'PRD-008', productName:'Filing Cabinet',    category:'Furniture',   costPrice:120, salePrice:200, stockQty:2  }
+    ];
+    const tb = document.getElementById('productsTable');
+    tb.innerHTML = demo.map(p => `
+      <tr>
+        <td><code>${p.productCode}</code></td>
+        <td>${p.productName}</td>
+        <td><span class="badge text-bg-light text-dark">${p.category}</span></td>
+        <td>${p.costPrice.toFixed(3)} KD</td>
+        <td>${p.salePrice.toFixed(3)} KD</td>
+        <td class="${p.stockQty < 5 ? 'text-danger fw-semibold' : ''}">${p.stockQty}</td>
+        <td><span class="badge ${p.stockQty < 5 ? 'badge-low' : 'badge-ok'}">${p.stockQty < 5 ? 'Low' : 'OK'}</span></td>
+      </tr>`).join('');
+  }
+
+  function loadEmployees() {
+    const demo = [
+      { employeeCode:'EMP-001', fullName:'Ahmed Al-Rashidi',  department:'IT',         designation:'Senior Developer', basicSalary:800, housingAllowance:200, transportAllowance:80  },
+      { employeeCode:'EMP-002', fullName:'Fatima Al-Kulaib',  department:'HR',         designation:'HR Manager',       basicSalary:700, housingAllowance:180, transportAllowance:70  },
+      { employeeCode:'EMP-003', fullName:'Mohammed Al-Azmi',  department:'Accounting', designation:'Sr. Accountant',   basicSalary:750, housingAllowance:190, transportAllowance:75  },
+      { employeeCode:'EMP-004', fullName:'Sara Al-Mutairi',   department:'Operations', designation:'Ops Analyst',      basicSalary:600, housingAllowance:150, transportAllowance:60  },
+      { employeeCode:'EMP-005', fullName:'Khalid Al-Shammari',department:'Management', designation:'Project Manager',  basicSalary:950, housingAllowance:250, transportAllowance:100 }
+    ];
+    const tb = document.getElementById('employeesTable');
+    tb.innerHTML = demo.map(e => {
+      const gross = e.basicSalary + e.housingAllowance + e.transportAllowance;
+      return `<tr>
+        <td><code>${e.employeeCode}</code></td>
+        <td>${e.fullName}</td>
+        <td><span class="badge text-bg-light text-dark">${e.department}</span></td>
+        <td>${e.designation}</td>
+        <td>${e.basicSalary.toFixed(3)}</td>
+        <td>${e.housingAllowance.toFixed(3)}</td>
+        <td>${e.transportAllowance.toFixed(3)}</td>
+        <td class="fw-semibold">${gross.toFixed(3)} KD</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function loadAccounts() {
+    const demo = [
+      {accountCode:'1000',accountName:'Cash and Bank',          accountType:'Asset'},
+      {accountCode:'1001',accountName:'Cash in Hand',           accountType:'Asset'},
+      {accountCode:'1002',accountName:'Bank Account',           accountType:'Asset'},
+      {accountCode:'1100',accountName:'Accounts Receivable',    accountType:'Asset'},
+      {accountCode:'1200',accountName:'Inventory',              accountType:'Asset'},
+      {accountCode:'2000',accountName:'Accounts Payable',       accountType:'Liability'},
+      {accountCode:'2100',accountName:'Accrued Salaries',       accountType:'Liability'},
+      {accountCode:'3000',accountName:'Owner Equity',           accountType:'Equity'},
+      {accountCode:'4000',accountName:'Sales Revenue',          accountType:'Revenue'},
+      {accountCode:'5000',accountName:'Cost of Goods Sold',     accountType:'Expense'},
+      {accountCode:'5100',accountName:'Salary Expense',         accountType:'Expense'},
+      {accountCode:'5200',accountName:'Rent Expense',           accountType:'Expense'},
+      {accountCode:'5300',accountName:'Utilities Expense',      accountType:'Expense'},
+      {accountCode:'5400',accountName:'General & Admin Expense',accountType:'Expense'}
+    ];
+    const colors = { Asset:'primary', Liability:'danger', Equity:'success', Revenue:'info', Expense:'warning' };
+    const tb = document.getElementById('accountsTable');
+    tb.innerHTML = demo.map(a => `
+      <tr>
+        <td><code>${a.accountCode}</code></td>
+        <td>${a.accountName}</td>
+        <td><span class="badge text-bg-${colors[a.accountType] || 'secondary'}">${a.accountType}</span></td>
+      </tr>`).join('');
+  }
+</script>
+</body>
+</html>
